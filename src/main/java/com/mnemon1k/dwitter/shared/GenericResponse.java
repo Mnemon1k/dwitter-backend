@@ -1,10 +1,7 @@
 package com.mnemon1k.dwitter.shared;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.beans.ConstructorProperties;
 
 @Data
 @NoArgsConstructor
