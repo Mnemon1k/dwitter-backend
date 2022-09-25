@@ -2,6 +2,7 @@ package com.mnemon1k.dwitter.User;
 
 import com.mnemon1k.dwitter.User.DTO.UserDTO;
 import com.mnemon1k.dwitter.excaptions.ApiException;
+import com.mnemon1k.dwitter.shared.CurrentUser;
 import com.mnemon1k.dwitter.shared.GenericResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,8 +29,8 @@ public class UserController {
     }
 
     @GetMapping("/users")
-    Page<UserDTO> getUsers(@PageableDefault(size = 10) Pageable page) {
-        return userService.getAllUsers(page).map(UserDTO::new);
+    Page<UserDTO> getUsers(@CurrentUser User loggedInUser, @PageableDefault(size = 10) Pageable page) {
+        return userService.getAllUsers(loggedInUser, page).map(UserDTO::new);
     }
 
     @PostMapping("/users")

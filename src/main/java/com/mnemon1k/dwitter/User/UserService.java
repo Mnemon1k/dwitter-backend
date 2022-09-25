@@ -1,7 +1,6 @@
 package com.mnemon1k.dwitter.User;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,7 +20,11 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public Page<User> getAllUsers(Pageable page) {
-        return userRepository.findAll(page);
+    public Page<User> getAllUsers(User loggedInUser, Pageable pageable) {
+        if (loggedInUser != null){
+            return userRepository.findByUsernameNot(loggedInUser.getUsername(), pageable);
+        }
+
+        return userRepository.findAll(pageable);
     }
 }

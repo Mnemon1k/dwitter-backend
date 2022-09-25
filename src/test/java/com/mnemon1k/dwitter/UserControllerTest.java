@@ -2,6 +2,7 @@ package com.mnemon1k.dwitter;
 
 import com.mnemon1k.dwitter.User.User;
 import com.mnemon1k.dwitter.User.UserRepository;
+import com.mnemon1k.dwitter.User.UserService;
 import com.mnemon1k.dwitter.excaptions.ApiException;
 import com.mnemon1k.dwitter.shared.GenericResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Map;
@@ -31,11 +33,13 @@ public class UserControllerTest {
 
     TestRestTemplate restTemplate;
     UserRepository userRepository;
+    UserService userService;
 
     @Autowired
-    public UserControllerTest(TestRestTemplate restTemplate, UserRepository userRepository) {
+    public UserControllerTest(TestRestTemplate restTemplate, UserRepository userRepository, UserService userService) {
         this.restTemplate = restTemplate;
         this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     @BeforeEach
@@ -293,6 +297,23 @@ public class UserControllerTest {
         ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<TestPage<Object>>() {});
 
         assertThat(Objects.requireNonNull(response.getBody()).getSize()).isEqualTo(10);
+    }
+
+    @Test
+    public void getUsers_whenUserLoggedIn_receivePageWithoutLoggedInUser(){
+        userService.save(TestUtil.createUser("user1"));
+        userService.save(TestUtil.createUser("user2"));
+        userService.save(TestUtil.createUser("user3"));
+
+        authenticate("user1");
+
+        ResponseEntity<TestPage<Object>> response = getUsers(new ParameterizedTypeReference<TestPage<Object>>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements()).isEqualTo(2);
+    }
+
+    private void authenticate(String username) {
+        restTemplate.getRestTemplate().getInterceptors().add(new BasicAuthenticationInterceptor(username, "AlexPass123"));
     }
 
     public <T> ResponseEntity<T> getUsers(ParameterizedTypeReference<T> responseType){
