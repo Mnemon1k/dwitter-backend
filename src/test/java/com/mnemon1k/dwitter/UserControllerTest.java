@@ -77,7 +77,7 @@ public class UserControllerTest {
     public void postUser_whenUserIsValid_receiveSuccessMessage(){
         User user = createUser();
         ResponseEntity<GenericResponse> response = postSignup(user, GenericResponse.class);
-        assertThat(response.getBody().getMessage()).isNotNull();
+        assertThat(Objects.requireNonNull(response.getBody()).getMessage()).isNotNull();
     }
 
     @Test
@@ -221,42 +221,85 @@ public class UserControllerTest {
 
         User user = createUser();
         ResponseEntity<ApiException> response = postSignup(user, ApiException.class);
-        Map<String, String> validationErrors = response.getBody().getValidationErrors();
+        Map<String, String> validationErrors = Objects.requireNonNull(response.getBody()).getValidationErrors();
         assertThat(validationErrors.get("username")).isEqualTo("This username is in use.");
     }
 
     @Test
-    public void getUsers_whenThereAreNoUsersInDB_reciveOk (){
+    public void getUsers_whenThereAreNoUsersInDB_receiveOk (){
         ResponseEntity<Object> response = getUsers(new ParameterizedTypeReference<Object>() {        });
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
-    public void getUsers_whenThereAreNoUsersInDB_recivePageWithZeroItems (){
+    public void getUsers_whenThereAreNoUsersInDB_receivePageWithZeroItems (){
         ResponseEntity<TestPage<Object>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<TestPage<Object>>() {});
 
-        assertThat(response.getBody().getTotalElements()).isEqualTo(0);
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements()).isEqualTo(0);
     }
 
     @Test
-    public void getUsers_whenThereIsUserInDB_recivePageWithUser (){
+    public void getUsers_whenThereIsUserInDB_receivePageWithUser (){
         userRepository.save(createUser());
         ResponseEntity<TestPage<Object>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<TestPage<Object>>() {});
 
-        assertThat(response.getBody().getNumberOfElements()).isEqualTo(1);
+        assertThat(Objects.requireNonNull(response.getBody()).getNumberOfElements()).isEqualTo(1);
     }
 
     @Test
-    public void getUsers_whenThereIsUserInDB_reciveUserWithoutPassword (){
+    public void getUsers_whenThereIsUserInDB_receiveUserWithoutPassword (){
         userRepository.save(createUser());
         ResponseEntity<TestPage<Map<String, Object>>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<TestPage<Map<String, Object>>>() {});
 
-        assertThat(response.getBody().getContent().get(0).containsKey("password")).isFalse();
+        assertThat(Objects.requireNonNull(response.getBody()).getContent().get(0).containsKey("password")).isFalse();
 
+    }
+
+    @Test
+    public void getUsers_whenPageIsRequestedFor3ItemsPerPageWhereDBHHas20Users_receive3Users(){
+        IntStream.rangeClosed(1, 20).mapToObj(i -> "test-user-" + i)
+                .map(TestUtil::createUser)
+                .forEach(userRepository::save);
+
+        String path = API_1_0_USERS + "?page=0&size=3";
+
+        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<TestPage<Object>>() {
+        });
+
+        assertThat(Objects.requireNonNull(response.getBody()).getContent().size()).isEqualTo(3);
+    }
+
+    @Test
+    public void getUsers_whenPageNotProvided_receivePageSizeAs10(){
+        ResponseEntity<TestPage<Object>> response = getUsers(new ParameterizedTypeReference<TestPage<Object>>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getSize()).isEqualTo(10);
+    }
+
+    @Test
+    public void getUsers_whenPageSizeMoreThan100_receivePageSizeAs100(){
+        String path = API_1_0_USERS + "?size=500";
+
+        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<TestPage<Object>>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getSize()).isEqualTo(100);
+    }
+
+    @Test
+    public void getUsers_whenPageSizeIsNegative_receivePageSizeAs10(){
+        String path = API_1_0_USERS + "?size=-50";
+
+        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<TestPage<Object>>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getSize()).isEqualTo(10);
     }
 
     public <T> ResponseEntity<T> getUsers(ParameterizedTypeReference<T> responseType){
         return restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, responseType);
+    }
+
+    public <T> ResponseEntity<T> getUsers(String path, ParameterizedTypeReference<T> responseType){
+        return restTemplate.exchange(path, HttpMethod.GET, null, responseType);
     }
 }

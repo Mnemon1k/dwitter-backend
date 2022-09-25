@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 import static com.mnemon1k.dwitter.TestUtil.createUser;
 import static org.assertj.core.api.Assertions.assertThat;
