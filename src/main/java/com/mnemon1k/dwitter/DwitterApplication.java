@@ -37,7 +37,7 @@ public class DwitterApplication {
                     .mapToObj(i ->{
                         User user = new User();
                         user.setUsername("user-" + i);
-                        user.setDisplayName("user-display-name-" + i);
+                        user.setDisplayName("display-name-" + i);
                         user.setPassword("Password1");
                         return user;
                     })
