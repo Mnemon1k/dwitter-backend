@@ -1,5 +1,7 @@
 package com.mnemon1k.dwitter;
 
+import com.mnemon1k.dwitter.User.DTO.UserDTO;
+import com.mnemon1k.dwitter.User.DTO.UserUpdateDTO;
 import com.mnemon1k.dwitter.User.User;
 import com.mnemon1k.dwitter.User.UserRepository;
 import com.mnemon1k.dwitter.User.UserService;
@@ -12,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -45,6 +49,7 @@ public class UserControllerTest {
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
+        restTemplate.getRestTemplate().getInterceptors().clear();
     }
 
     public <T> ResponseEntity<T> postSignup(Object request, Class<T> response){
@@ -287,7 +292,9 @@ public class UserControllerTest {
 
         ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<TestPage<Object>>() {});
 
-        assertThat(Objects.requireNonNull(response.getBody()).getSize()).isEqualTo(100);
+        System.out.println(response.getBody());
+
+        assertThat(response.getBody().getSize()).isEqualTo(100);
     }
 
     @Test
@@ -312,6 +319,107 @@ public class UserControllerTest {
         assertThat(Objects.requireNonNull(response.getBody()).getTotalElements()).isEqualTo(2);
     }
 
+    @Test
+    public void getUserByUsername_whenUserExists_receiveOk(){
+        String username = "test-user";
+        userService.save(createUser(username));
+        ResponseEntity<Object> response = getUser(username, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getUserByUsername_whenUserExists_receiveUserWithoutPassword(){
+        String username = "test-user";
+        userService.save(createUser(username));
+        ResponseEntity<String> response = getUser(username, String.class);
+        assertThat(response.getBody().contains("password")).isFalse();
+    }
+
+    @Test
+    public void getUserByUsername_whenUserDoesNotExists_receiveNotFound (){
+        String username = "unknown-user";
+        ResponseEntity<Object> response = getUser(username, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void getUserByUsername_whenUserDoesNotExists_receiveApiException (){
+        String username = "unknown-user";
+        ResponseEntity<ApiException> response = getUser(username, ApiException.class);
+        assertThat(response.getBody().getMessage().contains("unknown-user")).isTrue();
+    }
+
+    @Test
+    public void putUser_whenUnauthorizedUserSandRequest_receiveUnauthorized(){
+        ResponseEntity<Object> response = putUser(123, null, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    public void putUser_whenAuthorizedUserUpdateAnotherUser_receiveForbidden(){
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        long anotherUserId = user.getId() + 121;
+        ResponseEntity<Object> response = putUser(anotherUserId, null, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    public void putUser_whenUnauthorizedUserSandRequest_receiveApiException(){
+        ResponseEntity<ApiException> response = putUser(123, null, ApiException.class);
+        assertThat(response.getBody().getUrl()).contains("users/123");
+    }
+
+    @Test
+    public void putUser_whenAuthorizedUserUpdateAnotherUser_receiveApiException(){
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        long anotherUserId = user.getId() + 121;
+        ResponseEntity<ApiException> response = putUser(anotherUserId, null, ApiException.class);
+        assertThat(response.getBody().getUrl()).contains("users/" + anotherUserId);
+    }
+
+    @Test
+    public void putUser_whenValidUserIdFromAuthorizedUser_receiveOk(){
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<Object> response = putUser(user.getId(), httpEntity, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void putUser_whenValidUserIdFromAuthorizedUser_displayNameUpdated(){
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        putUser(user.getId(), httpEntity, Object.class);
+
+        Optional<User> userFromDb = userRepository.findByUsername(user.getUsername());
+
+        assertThat(userFromDb.get().getDisplayName()).isEqualTo(updateUser.getDisplayName());
+    }
+
+    @Test
+    public void putUser_whenValidUserIdFromAuthorizedUser_receiveUserDTOWithUpdatedDisplayName(){
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<UserDTO> response = putUser(user.getId(), httpEntity, UserDTO.class);
+
+        assertThat(Objects.requireNonNull(response.getBody()).getDisplayName())
+                .isEqualTo(updateUser.getDisplayName());
+    }
+
+    private static UserUpdateDTO getUserUpdateDTO() {
+        UserUpdateDTO updateUser = new UserUpdateDTO();
+        updateUser.setDisplayName("newDisplayName");
+        return updateUser;
+    }
+
     private void authenticate(String username) {
         restTemplate.getRestTemplate().getInterceptors().add(new BasicAuthenticationInterceptor(username, "AlexPass123"));
     }
@@ -322,5 +430,15 @@ public class UserControllerTest {
 
     public <T> ResponseEntity<T> getUsers(String path, ParameterizedTypeReference<T> responseType){
         return restTemplate.exchange(path, HttpMethod.GET, null, responseType);
+    }
+
+    public <T> ResponseEntity<T> getUser(String username, Class<T> responseType){
+        String path = API_1_0_USERS + "/" + username;
+        return restTemplate.getForEntity(path, responseType);
+    }
+
+    public <T> ResponseEntity<T> putUser(long id, HttpEntity<?> requestEntity, Class<T> responseType){
+        String path = API_1_0_USERS + "/" + id;
+        return restTemplate.exchange(path, HttpMethod.PUT, requestEntity, responseType);
     }
 }

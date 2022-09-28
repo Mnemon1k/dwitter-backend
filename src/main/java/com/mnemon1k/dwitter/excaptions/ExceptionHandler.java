@@ -22,7 +22,7 @@ public class ExceptionHandler implements ErrorController {
 
     @RequestMapping("/error")
     ApiException handleException(WebRequest webRequest){
-        Map<String, Object> attributes =errorAttributes.getErrorAttributes(webRequest, ErrorAttributeOptions.of(ErrorAttributeOptions.Include.MESSAGE));
+        Map<String, Object> attributes = errorAttributes.getErrorAttributes(webRequest, ErrorAttributeOptions.of(ErrorAttributeOptions.Include.MESSAGE));
 
         String message = (String) attributes.get("message");
         String url = (String) attributes.get("path");
