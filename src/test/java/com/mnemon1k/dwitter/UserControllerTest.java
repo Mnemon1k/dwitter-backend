@@ -158,7 +158,7 @@ public class UserControllerTest {
     @Test
     public void postUser_whenUserHasPasswordWithAllLowercaseLetters_receiveBadRequest(){
         User user = createUser();
-        user.setPassword("lowwercasepassword");
+        user.setPassword("lowercase-password");
 
         ResponseEntity<Object> response = postSignup(user, Object.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -167,7 +167,7 @@ public class UserControllerTest {
     @Test
     public void postUser_whenUserHasPasswordWithAllUppercaseLetters_receiveBadRequest(){
         User user = createUser();
-        user.setPassword("UPPERCASEPASSWORD");
+        user.setPassword("UPPERCASE-PASSWORD");
 
         ResponseEntity<Object> response = postSignup(user, Object.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -236,14 +236,15 @@ public class UserControllerTest {
 
     @Test
     public void getUsers_whenThereAreNoUsersInDB_receiveOk (){
-        ResponseEntity<Object> response = getUsers(new ParameterizedTypeReference<Object>() {        });
+        ResponseEntity<Object> response = getUsers(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     public void getUsers_whenThereAreNoUsersInDB_receivePageWithZeroItems (){
-        ResponseEntity<TestPage<Object>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<TestPage<Object>>() {});
+        ResponseEntity<TestPage<Object>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<>() {
+        });
 
         assertThat(Objects.requireNonNull(response.getBody()).getTotalElements()).isEqualTo(0);
     }
@@ -251,7 +252,8 @@ public class UserControllerTest {
     @Test
     public void getUsers_whenThereIsUserInDB_receivePageWithUser (){
         userRepository.save(createUser());
-        ResponseEntity<TestPage<Object>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<TestPage<Object>>() {});
+        ResponseEntity<TestPage<Object>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<>() {
+        });
 
         assertThat(Objects.requireNonNull(response.getBody()).getNumberOfElements()).isEqualTo(1);
     }
@@ -259,7 +261,8 @@ public class UserControllerTest {
     @Test
     public void getUsers_whenThereIsUserInDB_receiveUserWithoutPassword (){
         userRepository.save(createUser());
-        ResponseEntity<TestPage<Map<String, Object>>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<TestPage<Map<String, Object>>>() {});
+        ResponseEntity<TestPage<Map<String, Object>>> response = restTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, new ParameterizedTypeReference<>() {
+        });
 
         assertThat(Objects.requireNonNull(response.getBody()).getContent().get(0).containsKey("password")).isFalse();
 
@@ -273,7 +276,7 @@ public class UserControllerTest {
 
         String path = API_1_0_USERS + "?page=0&size=3";
 
-        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<TestPage<Object>>() {
+        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<>() {
         });
 
         assertThat(Objects.requireNonNull(response.getBody()).getContent().size()).isEqualTo(3);
@@ -281,7 +284,8 @@ public class UserControllerTest {
 
     @Test
     public void getUsers_whenPageNotProvided_receivePageSizeAs10(){
-        ResponseEntity<TestPage<Object>> response = getUsers(new ParameterizedTypeReference<TestPage<Object>>() {});
+        ResponseEntity<TestPage<Object>> response = getUsers(new ParameterizedTypeReference<>() {
+        });
 
         assertThat(Objects.requireNonNull(response.getBody()).getSize()).isEqualTo(10);
     }
@@ -290,18 +294,21 @@ public class UserControllerTest {
     public void getUsers_whenPageSizeMoreThan100_receivePageSizeAs100(){
         String path = API_1_0_USERS + "?size=500";
 
-        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<TestPage<Object>>() {});
+        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<>() {
+        });
 
         System.out.println(response.getBody());
 
-        assertThat(response.getBody().getSize()).isEqualTo(100);
+        assertThat(Objects.requireNonNull(response.getBody()).getSize())
+                .isEqualTo(100);
     }
 
     @Test
     public void getUsers_whenPageSizeIsNegative_receivePageSizeAs10(){
         String path = API_1_0_USERS + "?size=-50";
 
-        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<TestPage<Object>>() {});
+        ResponseEntity<TestPage<Object>> response = getUsers(path, new ParameterizedTypeReference<>() {
+        });
 
         assertThat(Objects.requireNonNull(response.getBody()).getSize()).isEqualTo(10);
     }
@@ -314,7 +321,8 @@ public class UserControllerTest {
 
         authenticate("user1");
 
-        ResponseEntity<TestPage<Object>> response = getUsers(new ParameterizedTypeReference<TestPage<Object>>() {});
+        ResponseEntity<TestPage<Object>> response = getUsers(new ParameterizedTypeReference<>() {
+        });
 
         assertThat(Objects.requireNonNull(response.getBody()).getTotalElements()).isEqualTo(2);
     }
@@ -332,7 +340,8 @@ public class UserControllerTest {
         String username = "test-user";
         userService.save(createUser(username));
         ResponseEntity<String> response = getUser(username, String.class);
-        assertThat(response.getBody().contains("password")).isFalse();
+        assertThat(Objects.requireNonNull(response.getBody()).contains("password"))
+                .isFalse();
     }
 
     @Test
@@ -346,7 +355,12 @@ public class UserControllerTest {
     public void getUserByUsername_whenUserDoesNotExists_receiveApiException (){
         String username = "unknown-user";
         ResponseEntity<ApiException> response = getUser(username, ApiException.class);
-        assertThat(response.getBody().getMessage().contains("unknown-user")).isTrue();
+        assertThat(
+                Objects.requireNonNull(response.getBody())
+                        .getMessage()
+                        .contains("unknown-user")
+        )
+                .isTrue();
     }
 
     @Test
@@ -367,7 +381,9 @@ public class UserControllerTest {
     @Test
     public void putUser_whenUnauthorizedUserSandRequest_receiveApiException(){
         ResponseEntity<ApiException> response = putUser(123, null, ApiException.class);
-        assertThat(response.getBody().getUrl()).contains("users/123");
+
+        assertThat(Objects.requireNonNull(response.getBody()).getUrl())
+                .contains("users/123");
     }
 
     @Test
@@ -376,7 +392,8 @@ public class UserControllerTest {
         authenticate(user.getUsername());
         long anotherUserId = user.getId() + 121;
         ResponseEntity<ApiException> response = putUser(anotherUserId, null, ApiException.class);
-        assertThat(response.getBody().getUrl()).contains("users/" + anotherUserId);
+        assertThat(Objects.requireNonNull(response.getBody()).getUrl())
+                .contains("users/" + anotherUserId);
     }
 
     @Test
@@ -399,7 +416,8 @@ public class UserControllerTest {
 
         Optional<User> userFromDb = userRepository.findByUsername(user.getUsername());
 
-        assertThat(userFromDb.get().getDisplayName()).isEqualTo(updateUser.getDisplayName());
+        assertThat(userFromDb.get().getDisplayName())
+                .isEqualTo(updateUser.getDisplayName());
     }
 
     @Test
