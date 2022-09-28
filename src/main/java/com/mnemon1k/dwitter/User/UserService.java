@@ -1,6 +1,5 @@
 package com.mnemon1k.dwitter.User;
 
-import com.mnemon1k.dwitter.User.DTO.UserDTO;
 import com.mnemon1k.dwitter.User.DTO.UserUpdateDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -19,7 +19,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.IntStream;
 
 import static com.mnemon1k.dwitter.TestUtil.createUser;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,7 +60,8 @@ public class LoginControllerTest {
     @Test
     public void postLogin_withoutUserCredentials_receiveApiErrorWithoutValidationErrors(){
         ResponseEntity<String> response = login(String.class);
-        assertThat(response.getBody().contains("validationErrors")).isFalse();
+        assertThat(Objects.requireNonNull(response.getBody())
+                .contains("validationErrors")).isFalse();
     }
 
     @Test
@@ -90,10 +90,12 @@ public class LoginControllerTest {
     public void postLogin_withValidCredentials_receiveLoggedInUserId(){
         User userFromDb = userService.save(createUser());
         authenticate();
-        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<Map<String, Object>>() {});
+        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<>() {
+        });
 
         Map<String, Object> body = response.getBody();
 
+        assert body != null;
         Integer id = (Integer) body.get("id");
         assertThat(id).isEqualTo(userFromDb.getId());
     }
@@ -102,7 +104,8 @@ public class LoginControllerTest {
     public void postLogin_withValidCredentials_receiveLoggedInUserImage(){
         User userFromDb = userService.save(createUser());
         authenticate();
-        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<Map<String, Object>>() {});
+        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<>() {
+        });
 
         Map<String, Object> body = response.getBody();
 
@@ -115,7 +118,8 @@ public class LoginControllerTest {
     public void postLogin_withValidCredentials_receiveLoggedInUserDisplayName(){
         User userFromDb = userService.save(createUser());
         authenticate();
-        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<Map<String, Object>>() {});
+        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<>() {
+        });
 
         Map<String, Object> body = response.getBody();
 
@@ -128,7 +132,8 @@ public class LoginControllerTest {
     public void postLogin_withValidCredentials_receiveLoggedInUserUsername(){
         User userFromDb = userService.save(createUser());
         authenticate();
-        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<Map<String, Object>>() {});
+        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<>() {
+        });
 
         Map<String, Object> body = response.getBody();
 
@@ -139,9 +144,10 @@ public class LoginControllerTest {
 
     @Test
     public void postLogin_withValidCredentials_receiveLoggedInUserWithoutPassword(){
-        User userFromDb = userService.save(createUser());
+        userService.save(createUser());
         authenticate();
-        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<Map<String, Object>>() {});
+        ResponseEntity<Map<String, Object>> response = login(new ParameterizedTypeReference<>() {
+        });
 
         Map<String, Object> body = response.getBody();
 

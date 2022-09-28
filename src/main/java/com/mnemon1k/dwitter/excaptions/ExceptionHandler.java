@@ -13,8 +13,12 @@ import java.util.Map;
 @RestController
 public class ExceptionHandler implements ErrorController {
 
+    private final ErrorAttributes errorAttributes;
+
     @Autowired
-    private ErrorAttributes errorAttributes;
+    public ExceptionHandler(ErrorAttributes errorAttributes) {
+        this.errorAttributes = errorAttributes;
+    }
 
     public String getErrorPath(){
         return "/error";
