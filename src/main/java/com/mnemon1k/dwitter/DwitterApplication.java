@@ -30,7 +30,7 @@ public class DwitterApplication {
     }
 
     @Bean
-    @Profile("!test") // Set that this method will not run in tests
+    @Profile("dev") // Set that this method will not run in tests
     CommandLineRunner run(UserService userService){
         return (args) -> {
             IntStream.rangeClosed(1, 15)

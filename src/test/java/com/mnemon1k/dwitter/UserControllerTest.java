@@ -5,8 +5,11 @@ import com.mnemon1k.dwitter.User.DTO.UserUpdateDTO;
 import com.mnemon1k.dwitter.User.User;
 import com.mnemon1k.dwitter.User.UserRepository;
 import com.mnemon1k.dwitter.User.UserService;
+import com.mnemon1k.dwitter.configuration.AppConfiguration;
 import com.mnemon1k.dwitter.excaptions.ApiException;
 import com.mnemon1k.dwitter.shared.GenericResponse;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,12 +45,14 @@ public class UserControllerTest {
     TestRestTemplate restTemplate;
     UserRepository userRepository;
     UserService userService;
+    AppConfiguration appConfig;
 
     @Autowired
-    public UserControllerTest(TestRestTemplate restTemplate, UserRepository userRepository, UserService userService) {
+    public UserControllerTest(TestRestTemplate restTemplate, UserRepository userRepository, UserService userService, AppConfiguration appConfig) {
         this.restTemplate = restTemplate;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.appConfig = appConfig;
     }
 
     @BeforeEach
@@ -432,6 +441,46 @@ public class UserControllerTest {
                 .isEqualTo(updateUser.getDisplayName());
     }
 
+    @Test
+    public void putUser_withValidRequestBodyFromAuthorizedUser_receiveUserVMWithRandomImageName() throws IOException {
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        String imageString = readFileToBase64("profile.png");
+        updateUser.setImage(imageString);
+
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<UserDTO> response = putUser(user.getId(), httpEntity, UserDTO.class);
+
+        assertThat(Objects.requireNonNull(response.getBody()).getImage())
+                .isNotEqualTo("profile-image.png");
+    }
+
+    @Test
+    public void putUser_withValidRequestBodyFromAuthorizedUser_imageSavedInProfileFolder() throws IOException {
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        String imageString = readFileToBase64("profile.png");
+        updateUser.setImage(imageString);
+
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<UserDTO> response = putUser(user.getId(), httpEntity, UserDTO.class);
+
+        String savedImageName = Objects.requireNonNull(response.getBody()).getImage();
+
+        String profileImagePath = appConfig.getFullProfileImagesPath() + "/" + savedImageName;
+        File savedImage = new File(profileImagePath);
+
+        assertThat(savedImage.exists()).isTrue();
+    }
+
+    private String readFileToBase64(String fileName) throws IOException {
+        ClassPathResource resource = new ClassPathResource(fileName);
+        byte[] imageArr = FileUtils.readFileToByteArray(resource.getFile());
+        return Base64.getEncoder().encodeToString(imageArr);
+    }
+
     private static UserUpdateDTO getUserUpdateDTO() {
         UserUpdateDTO updateUser = new UserUpdateDTO();
         updateUser.setDisplayName("newDisplayName");
@@ -458,5 +507,11 @@ public class UserControllerTest {
     public <T> ResponseEntity<T> putUser(long id, HttpEntity<?> requestEntity, Class<T> responseType){
         String path = API_1_0_USERS + "/" + id;
         return restTemplate.exchange(path, HttpMethod.PUT, requestEntity, responseType);
+    }
+
+    @AfterEach
+    public void cleanup() throws IOException {
+        FileUtils.cleanDirectory(new File(appConfig.getFullProfileImagesPath()));
+        FileUtils.cleanDirectory(new File(appConfig.getFullAttachmentsPath()));
     }
 }
