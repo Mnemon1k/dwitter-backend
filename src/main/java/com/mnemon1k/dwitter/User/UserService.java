@@ -48,6 +48,7 @@ public class UserService {
         if (userUpdateDTO.getImage() != null){
             try {
                 String imageName = fileService.saveProfileImage(userUpdateDTO.getImage());
+                fileService.deleteProfileImage(user.getImage());
                 user.setImage(imageName);
             } catch (IOException e) {
                 throw new RuntimeException(e);

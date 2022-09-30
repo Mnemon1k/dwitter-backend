@@ -542,7 +542,26 @@ public class UserControllerTest {
         assertThat(validationErrors.get("image")).isEqualTo("Only PNG and JPG file are allowed");
     }
 
+    @Test
+    public void putUser_withValidRequestBodyWithJPGImageForUserWhaHasImage_removeOldImageFromStorage() throws IOException {
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
 
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        String imageString = readFileToBase64("test-jpg.jpg");
+        updateUser.setImage(imageString);
+
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<UserDTO> response = putUser(user.getId(), httpEntity, UserDTO.class);
+
+        putUser(user.getId(), httpEntity, UserDTO.class);
+
+        String firstImage = Objects.requireNonNull(response.getBody()).getImage();
+        String firstImagePath = appConfig.getFullProfileImagesPath() + "/" + firstImage;
+        File firstImageFile = new File(firstImagePath);
+
+        assertThat(firstImageFile.exists()).isFalse();
+    }
 
     private String readFileToBase64(String fileName) throws IOException {
         ClassPathResource resource = new ClassPathResource(fileName);
