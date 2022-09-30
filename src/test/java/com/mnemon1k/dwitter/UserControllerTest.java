@@ -499,9 +499,10 @@ public class UserControllerTest {
     }
 
     @Test
-    public void putUser_withInvalidRequestBodyWithJPGImageFromAuthorizedUser_receiveOk() throws IOException {
+    public void putUser_withValidRequestBodyWithJPGImageFromAuthorizedUser_receiveOk() throws IOException {
         User user = userService.save(createUser("user-1"));
         authenticate(user.getUsername());
+
         UserUpdateDTO updateUser = getUserUpdateDTO();
         String imageString = readFileToBase64("test-jpg.jpg");
         updateUser.setImage(imageString);
@@ -513,7 +514,7 @@ public class UserControllerTest {
     }
 
     @Test
-    public void putUser_withInvalidRequestBodyWithGIFImageFromAuthorizedUser_receiveBadRequest() throws IOException {
+    public void putUser_withValidRequestBodyWithGIFImageFromAuthorizedUser_receiveBadRequest() throws IOException {
         User user = userService.save(createUser("user-1"));
         authenticate(user.getUsername());
         UserUpdateDTO updateUser = getUserUpdateDTO();
@@ -527,7 +528,7 @@ public class UserControllerTest {
     }
 
     @Test
-    public void putUser_withInvalidRequestBodyWithTXTFileForImageFieldFromAuthorizedUser_receiveValidationErrorForProfileImage() throws IOException {
+    public void putUser_withValidRequestBodyWithTXTFileForImageFieldFromAuthorizedUser_receiveValidationErrorForProfileImage() throws IOException {
         User user = userService.save(createUser("user-1"));
         authenticate(user.getUsername());
         UserUpdateDTO updateUser = getUserUpdateDTO();

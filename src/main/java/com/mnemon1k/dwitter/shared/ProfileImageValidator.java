@@ -28,9 +28,8 @@ public class ProfileImageValidator implements ConstraintValidator<ProfileImage, 
         byte[] bytes = Base64.getDecoder().decode(value);
         String type = fileService.detectType(bytes);
 
-        if (type.equalsIgnoreCase("image/png") || type.equalsIgnoreCase("image/jpg"))
-            return true;
-
-        return false;
+        return type.equalsIgnoreCase("image/png")
+                || type.equalsIgnoreCase("image/jpg")
+                || type.equalsIgnoreCase("image/jpeg");
     }
 }

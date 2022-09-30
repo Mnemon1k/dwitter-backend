@@ -1,7 +1,5 @@
 package com.mnemon1k.dwitter.shared;
 
-import com.mnemon1k.dwitter.User.UniqueUsernameValidator;
-
 import javax.validation.Constraint;
 import javax.validation.Payload;
 import java.lang.annotation.ElementType;

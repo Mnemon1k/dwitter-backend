@@ -60,7 +60,6 @@ public class UserController {
         return new UserDTO(user);
     }
 
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     ApiException handleValidationException(MethodArgumentNotValidException exception, HttpServletRequest request){
