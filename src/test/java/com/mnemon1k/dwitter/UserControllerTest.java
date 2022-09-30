@@ -498,6 +498,49 @@ public class UserControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
+    @Test
+    public void putUser_withInvalidRequestBodyWithJPGImageFromAuthorizedUser_receiveOk() throws IOException {
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        String imageString = readFileToBase64("test-jpg.jpg");
+        updateUser.setImage(imageString);
+
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<UserDTO> response = putUser(user.getId(), httpEntity, UserDTO.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void putUser_withInvalidRequestBodyWithGIFImageFromAuthorizedUser_receiveBadRequest() throws IOException {
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        String imageString = readFileToBase64("test-gif.gif");
+        updateUser.setImage(imageString);
+
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<Object> response = putUser(user.getId(), httpEntity, Object.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    public void putUser_withInvalidRequestBodyWithTXTFileForImageFieldFromAuthorizedUser_receiveValidationErrorForProfileImage() throws IOException {
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = getUserUpdateDTO();
+        String imageString = readFileToBase64("test-txt.txt");
+        updateUser.setImage(imageString);
+
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<ApiException> response = putUser(user.getId(), httpEntity, ApiException.class);
+        Map<String, String> validationErrors = Objects.requireNonNull(response.getBody()).getValidationErrors();
+
+        assertThat(validationErrors.get("image")).isEqualTo("Only PNG and JPG file are allowed");
+    }
+
 
 
     private String readFileToBase64(String fileName) throws IOException {
