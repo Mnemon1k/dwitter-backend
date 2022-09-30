@@ -39,7 +39,7 @@ public class DwitterApplication {
                         user.setUsername("user-" + i);
                         user.setDisplayName("display-name-" + i);
                         user.setPassword("Password1");
-                        user.setImage("https://vjoy.cc/wp-content/uploads/2020/03/bezymyannyjmsakk.jpg");
+                        user.setImage("");
                         return user;
                     })
                     .forEach(userService::save);

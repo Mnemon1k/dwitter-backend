@@ -3,6 +3,7 @@ package com.mnemon1k.dwitter.User.DTO;
 import com.mnemon1k.dwitter.User.User;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @NoArgsConstructor

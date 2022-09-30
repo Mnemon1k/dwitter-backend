@@ -475,6 +475,31 @@ public class UserControllerTest {
         assertThat(savedImage.exists()).isTrue();
     }
 
+    @Test
+    public void putUser_withInvalidRequestBodyWithNullDisplayNameFromAuthorizedUser_receiveBadRequest(){
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = new UserUpdateDTO();
+
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<Object> response = putUser(user.getId(), httpEntity, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    public void putUser_withInvalidRequestBodyWithMoreThanMaxSizeDisplayNameFromAuthorizedUser_receiveBadRequest(){
+        User user = userService.save(createUser("user-1"));
+        authenticate(user.getUsername());
+        UserUpdateDTO updateUser = new UserUpdateDTO();
+        updateUser.setDisplayName(IntStream.rangeClosed(1,300).mapToObj(x -> "a").collect(Collectors.joining()));
+
+        HttpEntity<UserUpdateDTO> httpEntity = new HttpEntity<>(updateUser);
+        ResponseEntity<Object> response = putUser(user.getId(), httpEntity, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+
+
     private String readFileToBase64(String fileName) throws IOException {
         ClassPathResource resource = new ClassPathResource(fileName);
         byte[] imageArr = FileUtils.readFileToByteArray(resource.getFile());
