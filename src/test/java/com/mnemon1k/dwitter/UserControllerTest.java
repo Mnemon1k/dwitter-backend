@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.mnemon1k.dwitter.TestUtil.createUser;
+import static com.mnemon1k.dwitter.TestUtil.generateStringOfLength;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -63,10 +64,6 @@ public class UserControllerTest {
 
     public <T> ResponseEntity<T> postSignup(Object request, Class<T> response){
         return restTemplate.postForEntity(API_1_0_USERS, request, response);
-    }
-
-    private String generateStringOfLength(int strLength){
-        return IntStream.rangeClosed(1,strLength).mapToObj(x -> "a").collect(Collectors.joining());
     }
 
     @Test
