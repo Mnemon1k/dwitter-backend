@@ -1,7 +1,9 @@
 package com.mnemon1k.dwitter;
 
 import com.mnemon1k.dwitter.Record.Record;
+import com.mnemon1k.dwitter.Record.RecordDTO;
 import com.mnemon1k.dwitter.Record.RecordRepository;
+import com.mnemon1k.dwitter.Record.RecordService;
 import com.mnemon1k.dwitter.User.User;
 import com.mnemon1k.dwitter.User.UserRepository;
 import com.mnemon1k.dwitter.User.UserService;
@@ -12,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
@@ -38,6 +42,9 @@ public class RecordControllerTest {
     UserService userService;
 
     @Autowired
+    RecordService recordService;
+
+    @Autowired
     UserRepository userRepository;
 
     @Autowired
@@ -59,6 +66,14 @@ public class RecordControllerTest {
 
     private <T> ResponseEntity<T> postRecord(Record record, Class<T> type) {
         return restTemplate.postForEntity(API_RECORDS_PATH, record, type);
+    }
+
+    private <T> ResponseEntity<T> getRecords(ParameterizedTypeReference<T> responseType) {
+        return restTemplate.exchange(API_RECORDS_PATH, HttpMethod.GET, null, responseType);
+    }
+
+    private <T> ResponseEntity<T> getRecordsOfUser(String username, ParameterizedTypeReference<T> responseType) {
+        return restTemplate.exchange("/api/1.0/users/"+username+"/records", HttpMethod.GET, null, responseType);
     }
 
     @Test
@@ -196,6 +211,104 @@ public class RecordControllerTest {
 
         assertThat(userFromDb.getRecords().size()).isEqualTo(1);
     }
+
+    @Test
+    public void getRecords_whenThereAreNoRecords_receiveOk(){
+        ResponseEntity<Object> response = getRecords(new ParameterizedTypeReference<>() {});
+        assertThat(response.getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getRecords_whenThereAreNoRecords_receivePageWithZeroItems(){
+        ResponseEntity<TestPage<Object>> response = getRecords(new ParameterizedTypeReference<>() {});
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements())
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void getRecords_whenThereAreRecords_receivePageWithItems(){
+        User user = userService.save(TestUtil.createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<TestPage<Object>> response = getRecords(new ParameterizedTypeReference<>() {});
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements())
+                .isEqualTo(3);
+    }
+
+    @Test
+    public void getRecords_whenThereAreRecords_receivePageWithRecordDTO(){
+        User user = userService.save(TestUtil.createUser("user1"));
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<TestPage<RecordDTO>> response = getRecords(new ParameterizedTypeReference<>() {
+        });
+
+        assertThat(
+                Objects.requireNonNull(response.getBody()).getContent().get(0)
+                        .getUser().getUsername()
+        )
+                .isEqualTo("user1");
+    }
+
+    @Test
+    public void postRecord_whenRecordIsValidAndUserIsAuthorized_receiveRecordDTO(){
+        userService.save(TestUtil.createUser("user1"));
+        authenticate("user1");
+        Record record = createRecord();
+        ResponseEntity<RecordDTO> response = postRecord(record, RecordDTO.class);
+
+        assertThat(Objects.requireNonNull(response.getBody()).getUser().getUsername())
+                .isEqualTo("user1");
+    }
+
+    @Test
+    public void getRecordsOfUser_whenUserExists_receiveOk(){
+        userService.save(TestUtil.createUser("user1"));
+        ResponseEntity<Object> response = getRecordsOfUser("user1", new ParameterizedTypeReference<>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getRecordsOfUser_whenUserNotExists_receiveNotFound(){
+        ResponseEntity<Object> response = getRecordsOfUser("randomUser", new ParameterizedTypeReference<>() {
+        });
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void getRecordsOfUser_whenUserExists_receivePageWithZeroRecords(){
+        ResponseEntity<TestPage<Record>> response = getRecordsOfUser("user1", new ParameterizedTypeReference<>() {
+        });
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements())
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void getRecordsOfUser_whenUserExistsWithRecords_receivePageOfRecordDTO(){
+        User user = userService.save(TestUtil.createUser("user1"));
+        recordService.save(createRecord(), user);
+        ResponseEntity<TestPage<RecordDTO>> response = getRecordsOfUser("user1", new ParameterizedTypeReference<>(){});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getContent().get(0).getUser().getUsername())
+                .isEqualTo("user1");
+    }
+
+    @Test
+    public void getRecordsOfUser_whenUserExistsWithMultipleRecords_receivePageWithMatchingRecordsCount(){
+        User user = userService.save(TestUtil.createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<TestPage<RecordDTO>> response = getRecordsOfUser("user1", new ParameterizedTypeReference<>(){});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements())
+                .isEqualTo(3);
+    }
+
 
     @AfterEach
     public void cleanupAfter() {

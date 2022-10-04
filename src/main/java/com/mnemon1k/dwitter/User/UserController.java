@@ -7,13 +7,10 @@ import com.mnemon1k.dwitter.shared.GenericResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/1.0/users")
@@ -32,12 +29,9 @@ public class UserController {
 
     @GetMapping("/{username}")
     UserDTO getUsers(@PathVariable String username) {
-        Optional<User> user = userService.getUserByUsername(username);
+        User user = userService.getUserByUsername(username);
 
-        if (user.isPresent())
-            return new UserDTO(user.get());
-
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, username + " Not Found");
+        return new UserDTO(user);
     }
 
     @PostMapping
