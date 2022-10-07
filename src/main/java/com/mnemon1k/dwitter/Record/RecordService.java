@@ -44,4 +44,13 @@ public class RecordService {
         User user = userService.getUserByUsername(username);
         return recordRepository.findByUser(user, pageable);
     }
+
+    public Page<Record> getPrevRecords(long id, Pageable pageable){
+        return recordRepository.findByIdLessThan(id, pageable);
+    }
+
+    public Page<Record> getPrevRecordsByUser(long id, String username, Pageable pageable){
+        User user = userService.getUserByUsername(username);
+        return recordRepository.findByUserAndIdLessThan(user, id, pageable);
+    }
 }

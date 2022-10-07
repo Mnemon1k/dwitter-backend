@@ -26,8 +26,7 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
 import java.util.Objects;
 
-import static com.mnemon1k.dwitter.TestUtil.createRecord;
-import static com.mnemon1k.dwitter.TestUtil.generateStringOfLength;
+import static com.mnemon1k.dwitter.TestUtil.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -74,6 +73,14 @@ public class RecordControllerTest {
 
     private <T> ResponseEntity<T> getRecordsOfUser(String username, ParameterizedTypeReference<T> responseType) {
         return restTemplate.exchange("/api/1.0/users/"+username+"/records", HttpMethod.GET, null, responseType);
+    }
+
+    private <T> ResponseEntity<T> getPrevRecords(long id, ParameterizedTypeReference<T> responseType) {
+        return restTemplate.exchange(API_RECORDS_PATH + "/" + id + "?direction=before&page=0&size=5&sort=id,desc", HttpMethod.GET, null, responseType);
+    }
+
+    private <T> ResponseEntity<T> getPrevRecordsOfUser(long id, String username, ParameterizedTypeReference<T> responseType) {
+        return restTemplate.exchange("/api/1.0/users/"+username+"/records/" + id + "?direction=before&page=0&size=5&sort=id,desc", HttpMethod.GET, null, responseType);
     }
 
     @Test
@@ -309,6 +316,85 @@ public class RecordControllerTest {
                 .isEqualTo(3);
     }
 
+    @Test
+    public void getPrevRecords_whenThereAreNoRecords_receiveOk(){
+        ResponseEntity<Object> response = getPrevRecords(5, new ParameterizedTypeReference<>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getPrevRecords_whenThereAreRecords_receivePageWithItemsBeforeProvidedId(){
+        User user = userService.save(createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        Record record = recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<TestPage<Object>> response = getPrevRecords(record.getId(), new ParameterizedTypeReference<>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements())
+                .isEqualTo(3);
+    }
+
+    @Test
+    public void getPrevRecords_whenThereAreRecords_receivePageWithRecordDTOBeforeProvidedId(){
+        User user = userService.save(createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        Record record = recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<TestPage<RecordDTO>> response = getPrevRecords(record.getId(), new ParameterizedTypeReference<>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getContent().get(0).getDate())
+                .isGreaterThan(0);
+    }
+
+    @Test
+    public void getPrevRecordsOfUser_whenUserExistsAndThereAreNoRecords_receiveOk(){
+        User user = userService.save(createUser("user1"));
+        ResponseEntity<Object> response = getPrevRecordsOfUser(5, user.getUsername(), new ParameterizedTypeReference<>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getPrevRecordsOfUser_whenUserExistsThereAreRecords_receivePageWithItemsBeforeProvidedId(){
+        User user = userService.save(createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        Record record = recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<TestPage<Object>> response = getPrevRecordsOfUser(record.getId(), user.getUsername(), new ParameterizedTypeReference<>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements())
+                .isEqualTo(3);
+    }
+
+    @Test
+    public void getPrevRecordsOfUser_whenUserExistsThereAreNoRecords_receivePageWithZeroItemsBeforeProvidedId(){
+        User user1 = userService.save(createUser("user1"));
+        User user2 = userService.save(createUser("user2"));
+        recordService.save(createRecord(), user1);
+        recordService.save(createRecord(), user1);
+        recordService.save(createRecord(), user1);
+        Record record = recordService.save(createRecord(), user1);
+        recordService.save(createRecord(), user1);
+
+        ResponseEntity<TestPage<Object>> response = getPrevRecordsOfUser(record.getId(), user2.getUsername(), new ParameterizedTypeReference<>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).getTotalElements())
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void getPrevRecordsOfUser_whenUserNotExistsAndThereAreNoRecords_receiveNotFound(){
+        ResponseEntity<Object> response = getPrevRecordsOfUser(5, "user1", new ParameterizedTypeReference<>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
 
     @AfterEach
     public void cleanupAfter() {

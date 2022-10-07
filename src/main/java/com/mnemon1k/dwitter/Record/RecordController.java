@@ -35,4 +35,15 @@ public class RecordController {
     Page<RecordDTO> getUserRecords(@PathVariable String username, Pageable pageable) {
         return recordService.getRecordsOfUserByUsername(username, pageable).map(RecordDTO::new);
     }
+
+    @GetMapping("/records/{id:[0-9]+}")
+    Page<RecordDTO> getRecordsRelative(@PathVariable long id, Pageable pageable){
+        return recordService.getPrevRecords(id, pageable).map(RecordDTO::new);
+    }
+
+    @GetMapping("/users/{username}/records/{id:[0-9]+}")
+    Page<RecordDTO> getRecordRelativeOfUser(@PathVariable long id, @PathVariable String username, Pageable pageable){
+        return recordService.getPrevRecordsByUser(id, username, pageable).map(RecordDTO::new);
+    }
+
 }
