@@ -5,9 +5,12 @@ import com.mnemon1k.dwitter.shared.CurrentUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/1.0")
@@ -36,14 +39,23 @@ public class RecordController {
         return recordService.getRecordsOfUserByUsername(username, pageable).map(RecordDTO::new);
     }
 
-    @GetMapping("/records/{id:[0-9]+}")
-    Page<RecordDTO> getRecordsRelative(@PathVariable long id, Pageable pageable){
-        return recordService.getPrevRecords(id, pageable).map(RecordDTO::new);
-    }
+    @GetMapping({"/records/{id:[0-9]+}", "/users/{username}/records/{id:[0-9]+}"})
+    ResponseEntity<?> getRecordsRelative(
+            @PathVariable long id,
+            @PathVariable(required = false) String username,
+            Pageable pageable,
+            @RequestParam(name = "direction", defaultValue = "after") String direction,
+            @RequestParam(name = "count", defaultValue = "false", required = false) boolean count
+    ){
+        if (direction.equalsIgnoreCase("before")){
+            return ResponseEntity.ok(recordService.getPrevRecords(id, username, pageable).map(RecordDTO::new));
+        }
 
-    @GetMapping("/users/{username}/records/{id:[0-9]+}")
-    Page<RecordDTO> getRecordRelativeOfUser(@PathVariable long id, @PathVariable String username, Pageable pageable){
-        return recordService.getPrevRecordsByUser(id, username, pageable).map(RecordDTO::new);
-    }
+        if (count){
+            long countValueFromDb = recordService.getRecordsCount(id, username);
+            return ResponseEntity.ok(Collections.singletonMap("count", countValueFromDb));
+        }
 
+        return  ResponseEntity.ok(recordService.getNextRecords(id, username, pageable).stream().map(RecordDTO::new).collect(Collectors.toList()));
+    }
 }

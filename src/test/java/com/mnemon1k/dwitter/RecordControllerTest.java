@@ -24,6 +24,8 @@ import org.springframework.test.context.ActiveProfiles;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.mnemon1k.dwitter.TestUtil.*;
@@ -81,6 +83,22 @@ public class RecordControllerTest {
 
     private <T> ResponseEntity<T> getPrevRecordsOfUser(long id, String username, ParameterizedTypeReference<T> responseType) {
         return restTemplate.exchange("/api/1.0/users/"+username+"/records/" + id + "?direction=before&page=0&size=5&sort=id,desc", HttpMethod.GET, null, responseType);
+    }
+
+    private <T> ResponseEntity<T> getNewRecordsOfUser(long id, String username, ParameterizedTypeReference<T> responseType) {
+        return restTemplate.exchange("/api/1.0/users/" + username + "/records/" + id + "?direction=after&sort=id,desc", HttpMethod.GET, null, responseType);
+    }
+
+    private <T> ResponseEntity<T> getNewRecords(long id, ParameterizedTypeReference<T> responseType) {
+        return restTemplate.exchange(API_RECORDS_PATH + "/" + id + "?direction=after&sort=id,desc", HttpMethod.GET, null, responseType);
+    }
+
+    private <T> ResponseEntity<T> getNewRecordsCount(long id, ParameterizedTypeReference<T> responseType) {
+        return restTemplate.exchange(API_RECORDS_PATH + "/" + id + "?direction=after&count=true", HttpMethod.GET, null, responseType);
+    }
+
+    private <T> ResponseEntity<T> getNewRecordsCountOfUser(long id, String username, ParameterizedTypeReference<T> responseType) {
+        return restTemplate.exchange("/api/1.0/users/" + username + "/records/" + id + "?direction=after&count=true", HttpMethod.GET, null, responseType);
     }
 
     @Test
@@ -394,6 +412,73 @@ public class RecordControllerTest {
     public void getPrevRecordsOfUser_whenUserNotExistsAndThereAreNoRecords_receiveNotFound(){
         ResponseEntity<Object> response = getPrevRecordsOfUser(5, "user1", new ParameterizedTypeReference<>() {});
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void getNewRecords_whenThereAreRecords_receiveListWithItemsAfterProvidedId(){
+        User user = userService.save(createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        Record record = recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<List<Object>> response = getNewRecords(record.getId(), new ParameterizedTypeReference<>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).size())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void getNewRecords_whenThereAreRecords_receiveListOfRecordDTOWithItemsAfterProvidedId(){
+        User user = userService.save(createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        Record record = recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<List<RecordDTO>> response = getNewRecords(record.getId(), new ParameterizedTypeReference<>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).get(0).getDate())
+                .isGreaterThan(0);
+    }
+
+    @Test
+    public void getNewRecordsOfUser_whenUserExistsThereAreNoRecords_receiveOk(){
+        User user = userService.save(createUser("user1"));
+        ResponseEntity<Object> response = getNewRecordsOfUser(5, user.getUsername(), new ParameterizedTypeReference<>() {});
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void getNewRecordsCount_whenThereAreRecords_receiveNumberOfRecordsAfterProvidedId(){
+        User user = userService.save(createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        Record record = recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<Map<String, Long>> response = getNewRecordsCount(record.getId(), new ParameterizedTypeReference<>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).get("count"))
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void getNewRecordsCountOfUser_whenThereAreRecordsAndUserExists_receiveNumberOfUserRecordsAfterProvidedId(){
+        User user = userService.save(createUser("user1"));
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+        Record record = recordService.save(createRecord(), user);
+        recordService.save(createRecord(), user);
+
+        ResponseEntity<Map<String, Long>> response = getNewRecordsCountOfUser(record.getId(), user.getUsername(), new ParameterizedTypeReference<>() {});
+
+        assertThat(Objects.requireNonNull(response.getBody()).get("count"))
+                .isEqualTo(1);
     }
 
     @AfterEach
