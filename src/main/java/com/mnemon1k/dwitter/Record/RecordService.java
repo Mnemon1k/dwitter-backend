@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class RecordService {
@@ -35,6 +36,9 @@ public class RecordService {
 //
 //        user.setRecords(records);
         return recordRepository.save(record);
+    }
+    public Optional<Record> getRecordById(long id){
+        return recordRepository.findById(id);
     }
     public Page<Record> getAllRecords(Pageable pageable) {
         return recordRepository.findAll(pageable);
@@ -83,5 +87,9 @@ public class RecordService {
         return (root, query, criteriaBuilder)->{
             return criteriaBuilder.greaterThan(root.get("id"), id);
         };
+    }
+
+    public void deleteRecord(long id) {
+        recordRepository.deleteById(id);
     }
 }

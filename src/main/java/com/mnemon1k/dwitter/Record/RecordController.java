@@ -2,14 +2,19 @@ package com.mnemon1k.dwitter.Record;
 
 import com.mnemon1k.dwitter.User.User;
 import com.mnemon1k.dwitter.shared.CurrentUser;
+import com.mnemon1k.dwitter.shared.GenericResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
 import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -56,6 +61,23 @@ public class RecordController {
             return ResponseEntity.ok(Collections.singletonMap("count", countValueFromDb));
         }
 
-        return  ResponseEntity.ok(recordService.getNextRecords(id, username, pageable).stream().map(RecordDTO::new).collect(Collectors.toList()));
+        return ResponseEntity.ok(recordService.getNextRecords(id, username, pageable).stream().map(RecordDTO::new).collect(Collectors.toList()));
+    }
+
+    @DeleteMapping("/records/{id:[0-9]+}")
+    GenericResponse deleteRecord(
+            @PathVariable long id,
+            @CurrentUser User user
+    ){
+        Optional<Record> recordById = recordService.getRecordById(id);
+        if (recordById.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post #" + id + " not found");
+
+        if (Objects.equals(recordById.get().getUser().getUsername(), user.getUsername())) {
+            recordService.deleteRecord(id);
+            return new GenericResponse("Record removed");
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
     }
 }
