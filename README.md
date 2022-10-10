@@ -2,7 +2,9 @@
 
 Educational project designed to develop Java, Spring, Spring Security skills and TDD skills, over 100 tests.
 
-### Register
+<div align="center">
+  
+  ### Register
 ![](https://i.ibb.co/QPsfS5N/screely-1665317197890.png)
 
 ### Feed
@@ -13,6 +15,10 @@ Educational project designed to develop Java, Spring, Spring Security skills and
 
 ### Profile update
 ![](https://i.ibb.co/XtcvCTG/screely-1665316923308.png)
+
+</div>
+
+
 
 
 ## Stack:
