@@ -14,6 +14,7 @@ Educational project designed to develop Java, Spring, Spring Security skills and
 ![](https://i.ibb.co/7Ky9rZ1/screely-1665316844110.png)
 
 ### Profile update
+  Work with files, validation.
 ![](https://i.ibb.co/XtcvCTG/screely-1665316923308.png)
 
 </div>
