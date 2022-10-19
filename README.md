@@ -1,4 +1,4 @@
-# Twitter clone - educational project
+# 'Twitter' clone
 
 Educational project designed to develop Java, Spring, Spring Security skills and TDD skills, over 100 tests.
 
